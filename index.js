@@ -29,6 +29,10 @@ module.exports = function (sails) {
             require(__dirname + '/libs/services')(sails, dir, cb);
         },
 
+        injectResponses: function (dir, cb) {
+            require(__dirname + '/libs/responses')(sails, dir, cb);
+        },
+
         // Inject config and policies synchronously into the Sails app
         configure: function (dir) {
             if (!dir) {
@@ -49,7 +53,8 @@ module.exports = function (sails) {
                 dir = tmp || {
                     models: __dirname + '/../../api/models',
                     controllers: __dirname + '/../../api/controllers',
-                    services: __dirname + '/../../api/services'
+                    services: __dirname + '/../../api/services',
+                    responses: __dirname + '/../../api/responses',
                 };
             }
             
@@ -103,6 +108,16 @@ module.exports = function (sails) {
                 });
             };
 
+            var loadResponses = function (next) {
+                self.injectResponses(dir.responses, function (err) {
+                    if (err) {
+                        return next(err);
+                    }
+                    sails.log.info('User hook responses loaded from ' + dir.responses + '.');
+                    return next(null);
+                });
+            };
+
             if (dir.policies) {
                 self.injectPolicies(dir.policies);
                 sails.log.info('User hook policies loaded from ' + dir.policies + '.');
@@ -125,6 +140,10 @@ module.exports = function (sails) {
 
             if (dir.services) {
                 toLoad.push(loadServices);
+            }
+
+            if (dir.responses) {
+                toLoad.push(loadResponses);
             }
 
             async.parallel(toLoad, function (err) {
